@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>OI2018 Problem 3 - Pair of Necklaces</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Zilla+Slab" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.15.0/themes/prism.min.css" />
+  <style>
+  body {
+    font-family: 'Zilla Slab', serif;
+    padding-left: 25%;
+    padding-right: 25%;
+  }
+  </style>
+</head>
+<body>
+  <h1>Problem 3</h1>
+  <h1><a href="https://szkopul.edu.pl/problemset/problem/OtqvpeGnW8TDwTXsatPekUcF/site/?key=statement">Pair of necklaces (PAR)</a></h1>
+
+  <p>
+    Caution! It seems there is a translation mistake in the english version. In the polish version valid necklaces need to have the total value of the same parity, Even or Odd. English version asks for both of them to be Even. I'm assuming polish version is the correct one.
+  </p>
+  <h2>Introduction</h2>
+  <p>
+    Olimpiada Informatyczna, which you could translate as Computer Science Olympics or maybe more accurately Algorithmics Olympics, is held every year for high school students (or even younger) to compete in solving various problems by writing programs. It's not exactly about coding, because the difficulty lies mostly with designing algorithms that solve presented problems, but you have to implement your ideas as well.
+  </p>
+  <p>
+    The first stage is open for everyone and consists of five problems. You have a couple of months to write your programs, which will then be automatically graded on a 100 point scale by running them against some unknown datasets. Best students advance to the second stage where you only have a couple of hours to come up with an algorithm and implement it. In short, a great deal of fun and pressure.
+  </p>
+  <p>
+    I used to compete when I was in high school and I decided to try this kind of programming once again and create a write up about solving problems like this. Here's, in my opinion, the easiest problem from the first stage of 2018/2019 OI.
+  </p>
+  <p>
+    Here's the repository <a href="https://github.com/gibki/io2018par">https://github.com/gibki/io2018par</a>
+  </p>
+  <h2>Problem description</h2>
+  <p>
+    Problem descriptions are written in a rather convoluted way in my opinion. Let me rephrase it.
+  </p>
+  <p>
+    You are given a pair of chains of gems. Each gem has a known value described by an integer. You are going to select two continuos subchains (necklaces), one from each chain. Both subchains have to have the same length and when you sum up their values, they need to be of the same parity. Your task is to compute the length of the longest subchains satisfying those requirements.
+  </p>
+  <p>
+    For example, consider chains \([0, 1, 2, 3, 4, 5]\) and \([3, 1, 3, 6]\). Let's first try using the whole shorter chain. It's length is 4 and it has a total value of 13, which is Odd. We then check all subchains of length 4 from the longer chain. We have \([0, 1, 2, 3]\) which has a total value of 6, for \([1, 2, 3, 4]\) it's 10 and for \([2, 3, 4, 5]\) it's 14. Since all length 4 subchains of the longer chain have an Even total value, there are no pairs of subchains of length 4 that satisfy the parity requirement.
+  </p>
+  <p>
+    There are actually multiple solutions of length 3. For example \([0, 1, 2]\) and \([3, 1, 3]\) are both Odd and \([1, 2, 3]\) and \([1, 3, 6]\) are both Even. You should easily be able to find the other two solutions. For our task we don't actually need to specify what those chains are, just their length. For this example the answer is 3.
+  </p>
+  <h2>Reading in the data</h2>
+  <p>
+    Let's start by writing a program that simply reads in properly formated data and prints it back out. Each input file will actually contain multiple datasets. First line of input \(q\) tells us how many datasets there are in the file. Then, for each dataset we will get 3 lines. First line will contain two integers separated by a single space, \(n\) and \(m\), representing the lengths of the chains. Second line contains the values of gems in the first chain, \(n\) integers seperated by a single space. Third line containst the values of gems in the second chain, \(m\) integers separated by a single space.
+  </p>
+  <p>
+    Our previous example would look like this:
+  </p>
+  <pre><code class="language-python">
+    1
+    6 4
+    0 1 2 3 4 5
+    3 1 3 6
+  </code></pre>
+  <p>
+    And here is one example of how to read in this data (file <i>par0.py</i>):
+  </p>
+  <pre><code class="language-python">
+  q = int(input())
+  print(q)
+  for i in range(q):
+      n, m = [int(x) for x in input().split()]
+      a = [int(x) for x in input().split()]
+      b = [int(x) for x in input().split()]
+
+      print(n, m)
+      print(a)
+      print(b)
+  </code></pre>
+  <p>
+    The problem description also contains precise limits for all the values present in test datasets. These are not that important, so don't sweat too much abouth them:
+  </p>
+  <p>
+    \(1 \le q \le 20000\)
+  </p>
+  <p>
+    \(1 \le n,m \le 100000\)
+  </p>
+  <p>
+    \(0 \le v \le 10^9\)<br>
+    Where v is the value of any one gem.
+  </p>
+  <h2>Simple solution</h2>
+  <p>
+    The first version of the solution that we are going to write will be the naive approach, sometimes refered to as "the brute force approach". We are going to generate all the subchains of length \(m\) from both chains, sum them up and check their parity. If we find a match, we end the computation returning \(m\). If there was no match, we generate all the subchains of length \(m-1\), check those and so forth.
+  </p>
+  <p>
+    Let's start with writing a function that will generate all the subchains of given length from a chain. Here's my attempt:
+  </p>
+  <pre><code class="language-python">
+  def generate_subchains(chain, length):
+      subchain_count = len(chain) - length + 1
+      return [chain[x:x + length] for x in range(subchain_count)]
+  </code></pre>
+  <p>
+    If our chain has length \(m\) there is one subchain of length \(m\), two subchains of length \(m-1\) etc. Finally there are \(m\) subchains of length 1. After we calculate the number of subchains a simple iteration over the starting points does the job, slicing a subchain of length \(length\) each time. Here's an example of this function in action:
+  </p>
+  <pre><code class="language-python">
+  generate_subchains([0, 1, 2, 3], 2)
+  [[0, 1], [1, 2], [2, 3]]
+  </code></pre>
+  <p>
+    Now we need to calculate the parity of the total value of gems in any given chain. The built-in function <i>sum</i> will take care of summing up the values of the gems. To get the parity we will use the <i>modulo</i> operator. Most programming languages use the percent character \(\%\) for this operator. It calculates the reminder in division.
+  </p>
+  <p>Even numbers are divisible by 2, so their reminder is 0. Odd numbers are not divisible by 2 and their reminder is 1. Here's my version of this function:</p>
+  <pre><code class="language-python">
+  def calculate_chain_parity(chain):
+      return sum(chain) % 2
+  </code></pre>
+  <p>
+    With these two functions the main algorithm is rather simple. First we make sure which chain is the shorter one. Then we use it's length to try all the subchain sizes, starting from the biggest one. Once we find a match we cut the computation short and print out the result.
+  </p>
+  <p>
+    That's it, here's the full first version of the algorithm that actually solves this problem (file <i>par1.py</i>):
+  </p>
+  <p>
+  </p>
+  <pre><code class="language-python">
+  def generate_subchains(chain, length):
+      subchain_count = len(chain) - length + 1
+      return [chain[x:x + length] for x in range(subchain_count)]
+
+  def calculate_chain_parity(chain):
+      return sum(chain) % 2
+
+  def calculate_longest_subchain_length(n, m, a, b):
+      if m > n:
+          n, m, a, b = m, n, b, a
+
+      for length in reversed(range(m + 1)):
+          for chain_a_subchain in generate_subchains(a, length):
+              for chain_b_subchain in generate_subchains(b, length):
+                  if calculate_chain_parity(chain_a_subchain) ==\
+                      calculate_chain_parity(chain_b_subchain):
+                      return length
+
+  q = int(input())
+  for i in range(q):
+      n, m = [int(x) for x in input().split()]
+      a = [int(x) for x in input().split()]
+      b = [int(x) for x in input().split()]
+
+      print(calculate_longest_subchain_length(n, m, a, b))
+  </code></pre>
+
+  <h2>A bit about complexity</h2>
+  <p>
+    To get the first 15 out of 100 points in the competition, your program will have to tackle datasets where \(n\) and \(m\) are no bigger than 1000. Our current program spits out the answer to \(in/par00.in\) immediately. If we run it on \(in/par01.in\) which has \(n=m=100\) there is a barely noticable pause before the correct answer appears. But \(in/par02.in\) has \(n=m=1000\). I let this program run for about a minute on my computer and there was still no answer. If we give it the biggest dataset from the description, \(n=m=100000\) it just may be that our program would take longer than the universe exists to come up with the answer.
+  </p>
+  <p>
+    Our program is correct, but our algorithm is not.
+  </p>
+    Obviously all good algorithms produce correct results. But beyond being correct we also care about their <i>complexity</i>, which measures how many resources will an algorithm use to complete it's computation.
+  </p>
+  <p>
+    Most of the time we care about how long it will take to complete the computation, so when refering to algorithm's <i>complexity</i> we mean it's <i>computational complexity</i> - roughly how many steps there will be in the computation.
+  </p>
+  <p>
+    The second type of complexity is <i>memory complexity</i> - roughly how much space will the running algorithm require to store it's partial results. Since memory is often cheaper than time, <i>memory complexity</i> is usually only considered between algorithms of the same <i>computational complexity</i>, as an algorithm that uses less memory but takes longer is considered to be inferior. Most of the time only mission critical algorithms will be carefully engineered to use as little memory as possible.
+  </p>
+  <p>
+    More often than that <i>memory complexity</i> is what limits the use of some fast algorithms. Consider for example an algorithm that plays chess. In theory, we could just compute the whole game tree once, store it in memory and have the algorithm just look up the best move without computing anything. But when you consider how large such a database would be, it becomes apparent that it's not just impossible with our current technology. There would be more entries in this database than there are atoms in the observable universe. This is an extreme example, but I hope you get the idea.
+  </p>
+  <p>
+    How is complexity measured? If you want to get really mathy about it, it's technically done using <a href="https://en.wikipedia.org/wiki/Big_O_notation">The Big O Notation</a>. It boils down to stating complexity in terms of the size of the input and only caring about the most significant part of the computation.
+  </p>
+  <p>
+    Consider for example this simple program that sums a list of integers:
+  </p>
+  <pre><code class="language-python">
+  integers = [0, 1, 2, 3, 4, 5]
+
+  sum = 0
+  for i in integers:
+      sum += i
+
+  print(sum)
+  </code></pre>
+  <p>
+    We can calculate exactly how many steps it will take to complete this computation. One step to initialize the list, one step to initialize the <i>sum</i> variable. There are \(n=6\) elements in the list, so the <i>for</i> loop will pick up one of them 6 times and add it to the <i>sum</i> variable 6 times. One step to print for a total of 15 steps.
+  </p>
+  <p>
+    For a list of size \(n\) this algorithm takes \(2n+3\) steps. What is the significant part of this expression? First, let's generalize the expression to \(c_1n^1+c_0\). \(c_1\) and \(c_0\) are <i>constants</i>, meaning they stay the same when \(n\) changes.
+  </p>
+  <p>
+    The most important part of this expression is the exponent 1. It's actually so important that regardless of the values of \(c_1\) and \(c_0\) we call this algorithm <i>linear</i>, or \(O(n)\). The name <i>linear</i> comes from the fact that if you plot the number of steps in terms of \(n\), it creates a straight line.
+  </p>
+  <p>
+    The second most important term is \(c_1\), the constant by the highest exponent of \(n\), with \(c_0\) being the least important. Both of them are usually completely disregarded when discussing <i>computational complexity</i>.
+  </p>
+  <p>
+    To better understand why this is so, let's say you came up with an algorithm that takes exactly \(2n^2\) steps to complete. You then spent hours or even days refining and optimizing it to finally get to \(n^2\). Twice as fast sounds great, that's 100% speed up.
+  </p>
+  <p>
+    Sounds great until somebody points out that your algorithm is still \(O(n^2)\), while an \(O(n)\) algorithm that solves this problem exists. It can even be a mess of useless instructions, repeated calculations etc. as long as they don't depend on \(n^2\). Even if it takes \(999n+999\) steps, as soon as the problem you are trying to solve is of size \(n \ge 1000\), the monstrosity takes one less step than your beautifully and carefully optimized quadratic algorithm, and that difference will only grow with bigger \(n\). To put it into perspective, let's say that the problem is of size \(n=1000000\) and your slow computer can process one million steps in one second. The linear algorithm stuggles a bit and takes almost 17 minutes, basically an eternity in computer terms. Care to guess how long would the quadratic algorithm take? About 11.5 DAYS.
+  </p>
+  <p>
+    This is the power of the exponents, fighting them with smaller constants just doesn't cut it. It only makes sense to start worrying about them when you are sure that the <i>order</i> of your algorithm is as good as it can be. So how can you be sure that your algorithm is of correct complexity? Well, to be exact and mathsy again, you would most likely prove that your algorithm is correct, then prove that it's complexity is such and such, and then prove that no faster algorithm can exist. This sounds complicated, but consider the example where we summed up numbers. Our algorithm is correct and it's \(O(n)\). If you wanted to sum up a list with \(n\) elements in less than \(n\) steps, you wouldn't even be able to look at all the numbers in the list. I hope you agree that no formal and strict proof is required to conclude that \(O(n)\) is the best algorithm here.
+  </p>
+  <p>
+    Let's take a look at the complexity of our naive approach. To simplify, let's assume the chains are of the same length \(n=m\). We are comparing one subchain of length \(n\) from \(a\) to one subchain of length \(n\) from \(b\) for \(1^2\) comparisons, then two chains of length \(n-1\) from \(a\) to two chains of length \(n-1\) from \(b\) for \(2^2\) more comparisons etc. all the way up to \(n\). We also need to actually sum up the values of gems before each comparison.
+  </p>
+  <p>
+    You can do the math yourself using these identities:
+    $$1 + 2 + ... + n = {n(n+1) \over 2}$$
+    $$1^2 + 2^2 + ... + n^2 = {n(n+1)(2n+1) \over 6}$$
+    $$1^3 + 2^3 + ... + n^3 = {n^2(n+1)^2 \over 4}$$
+
+    I came up with
+
+    $$1^2(n - 0) + 2^2(n - 1) + 3^2(n - 2) + ... + n^2(n - (n - 1)) = {n(n+1)^2(n+2) \over 12} = O(n^4)$$
+
+    You really don't need to do all this. Unless I'm writing I just look at the code, go "looks about cubic or worse" and start looking for a better solution.
+  </p>
+  <h2>Starting on the way to a proper solution</h2>
+  <p>
+    Apart from being a simple coding and math excersise, creating and analysing the naive approach can clue you in on something about the problem. Things we are calculating that we don't need to, like how we could print out which chains we would use even though we needed to only calculate their lengths. Or maybe you are screaming internally how my way to calculate the chain parities is awful and it takes the algorithm from \(O(n^3)\) to \(O(n^4)\). Those are good first steps. But before we get to what I came up with after looking at this problem, more maths. Relevant this time, I promise.
+  </p>
+  <p>
+    Even if you are not into math at all you might have noticed at some point in your life that if you add two Even numbers, you get an Even number. If you add two Odd numbers, you get an Even number as well. Only if you add an Odd and an Even number will the sum be Odd.
+  </p>
+  <p>
+    Mathematically inclined geeks like me like to call this <i>modulo arithmetics</i> and describe it with numbers. So
+    $$\text{Even + Even is Even}$$
+    $$\text{Odd + Odd is Even}$$
+    $$\text{Even + Odd is Odd}$$
+    $$\text{Odd + Even is Odd}$$
+
+    would look much better written as
+
+    $$0 + 0 \equiv 0 (\text{mod } 2)$$
+    $$1 + 1 \equiv 0 (\text{mod } 2)$$
+    $$0 + 1 \equiv 1 (\text{mod } 2)$$
+    $$1 + 0 \equiv 1 (\text{mod } 2)$$
+
+    What about all the other Even and Odd numbers apart from 0 and 1? No problem, because all Even numbers are <i>equivalent</i> to 0 when we talk about their reminders when divided by two, and all Odd numbers are <i>equivalent</i> to 1. That's how you read this sign by the way, \(1 + 1 \equiv 0\) is read as "one plus one is equivalent to zero". And those wordy sentences look much better in their "proper" form:
+    $$2k \equiv 0 (\text{mod } 2), k \in \mathbb{N}$$
+    $$2k + 1 \equiv 1 (\text{mod } 2), k \in \mathbb{N}$$
+  </p>
+  <p>
+    Armed with this revolutionary knowledge, let's consider again the long chain from the example, \([0, 1, 2, 3, 4, 5]\). What parity is the sum? Of course we can add the values up, that's 15 and it's Odd. But we can also go
+    Even (0) + Odd (1) is Odd, plus Even (2) is Odd, plus Odd (3) is Even, plus Even (4) is Even, plus Odd (5) is Odd, so the sum is Odd. If we only care about the parity of the sum, we can transform the input chain to look like this:
+    $$[0, 1, 2, 3, 4, 5] \equiv [0, 1, 0, 1, 0, 1]$$
+
+    We can do the same with the shorter chain:
+    $$[3, 1, 3, 6] \equiv [1, 1, 1, 0]$$
+
+    And we can be sure that the answer to datasets
+  </p>
+  <pre><code class="language-python">
+  1
+  6 4
+  0 1 2 3 4 5
+  3 1 3 6
+  </code></pre>
+  <p>and</p>
+  <pre><code class="language-python">
+  1
+  6 4
+  0 1 0 1 0 1
+  1 1 1 0
+  </code></pre>
+  </p>
+    will be exactly the same. This is an example of a very simple problem <i>reduction</i>. We can solve a simpler problem where all the gems have the value of either 0 or 1, and use the answer for a harder problem. We did a similar thing before, where we <i>reduced</i> a problem where either chain can be longer to one where only the first chain can be longer by swapping them conditionally.
+  </p>
+  <p>
+    Before we continue let's rework our program so that we read in the data, reduce it to a simpler form and pass only that to the actual algorithm. The data read loop will look like this:
+  </p>
+  <pre><code class="language-python">
+  q = int(input())
+  for i in range(q):
+      n, m = [int(x) for x in input().split()]
+      a = [int(x) for x in input().split()]
+      b = [int(x) for x in input().split()]
+
+      a = [x % 2 for x in a]
+      b = [x % 2 for x in b]
+
+      if m > n:
+          a, b, n, m = b, a, m, n
+
+      print(calculate_longest_subchain_length(n, m, a, b))
+  </code></pre>
+  <p>
+    This problem reduction so far was not at all useful for solving our actual problem, complexity, but we've managed to at least not care in the slightest about how big the values of gems can be. It will also make discussing the problem easier.
+  </p>
+  <h2>The easiest case</h2>
+  <p>
+    Suppose the first example looked like this:
+  </p>
+  <pre><code class="language-python">
+  1
+  6 4
+  0 1 0 1 1 1
+  1 1 1 0
+  </code></pre>
+  <p>
+    If it's not obvious, the fifth gem in the longer chain was changed from Even to Odd.
+  </p>
+  <p>
+    The length of the shorter chain is 4, so let's look at the first two length 4 subchains of the longer chain.
+  </p>
+  <pre><code class="language-python">
+  Indices:    0 1 2 3 4 5
+  Gems:       0 1 0 1 1 1
+
+  Subchains:  0 1 0 1
+                1 0 1 1
+  </code></pre>
+  <p>
+    Do you notice anything special about those two subchains? There's actually quite a lot to unpack here, as this is basically all that you need to solve the problem, for real this time.
+  </p>
+  <p>
+    The most important thing to notice is that the first subchain has an Even total value, while the second one has an Odd total value. We have found two subchains of the same chain, of the same length, that have different total value parities.
+  </p>
+  <p>
+    It doesn't even matter what gems are in the second chain, the answer to the problem is 4. Whatever the parity of the shorter chain is, there is at least one subchain of the same length and the same parity in the longer chain. Since no longer subchain can be constructed, as we have used all of the shorter chain, 4 is the answer.
+  </p>
+  <p>
+    If we ever find two subchains of one chain of the same length but with different parities, we have found a possible answer. We know for sure that two necklaces of such length can be constructed and will have the same parity, we only need to check if that's the best we can do.
+  </p>
+  <p>
+    The second thing to notice might sound obvious. The two subchains differ only by one gem. First subchain has gems from positions 0 to 3, second subchain has gems from positions 1 to 4, they share the chunk from 1 to 3.
+  </p>
+  <p>
+    The parity of that shared chunk is obviously the same. This means that if gems at positions 0 and 4 have the same parity, the subchains have the same parity. If the gems have different parities so do the subchains.
+  </p>
+  <p>
+    This reasoning is the same for all subchain lengths:
+  <pre><code class="language-python">
+  0 1 ... 1 1
+
+  0 1 ... 1
+    1 ... 1 1
+  </code></pre>
+  <p>
+    It doesn't matter how many gems are hiding inbetween and what are their values. The first subchain starts with 0 while the second one ends with 1. One of them is Even and one of them is Odd.
+  </p>
+  <h2>Two orders down, one to go</h2>
+  <p>
+    Let's look at a generic case. The longer chain will have gems with parities \(a_0, a_1, ..., a_{n-1}\). The longest subchains we need to check are of length \(m\), the length of the shorter chain. So the subchains of length \(m\) look like this:
+    $$[a_0, a_1, ..., a_{m-1}]$$
+    $$[a_1, a_2, ..., a_{m}]$$
+    $$[a_2, a_3, ..., a_{m+1}]$$
+    $$...$$
+    $$[a_{n-m-1}, a_{n-m}, ..., a_{n-1}]$$
+    Looking at subchains one and two, first one starts with \(a_0\) and the second one ends with \(a_{m+0}\). Second pair, subchains two and three, first one starts with \(a_1\), second one ends with \(a_{m+1}\). I think you can see the pattern. We are asking
+    $$a_0 = a_{0 + m}?$$
+    $$a_1 = a_{1 + m}?$$
+    $$a_2 = a_{2 + m}?$$
+    $$...$$
+    $$a_{n - m - 1} = a_{n - m -1 +m}=a_{n - 1}?$$
+    If any of those equalities is not true, we have found the answer, it's \(m\).
+  </p>
+  <p>
+    In code form:
+  </p>
+  <pre><code class="language-python">
+  def calculate_longest_subchain_length(n, m, a, b):
+      for index in range(n - m):
+          if a[index] != a[index + m]:
+              return m
+
+      ...
+  </code></pre>
+  <p>
+    So, when we where discussing complexity before I kind of cheated with assumptions in order to get to one variable. Here we have two and I guess it would be best to call it \(O(n - m)\) since it will take 0 steps for some datasets.
+  </p>
+  <p>
+    But since we only care about the <i>order</i>, I think it makes more sense to write it as \(O(n+m)\) and read it as "linear with respect to both \(n\) and \(m\)". For cases where \(n\) is much bigger than \(m\) the difference is neglegible anyway. What matters is that the algorithm is NOT \(O(nm)\).
+  </p>
+  <p>
+    Think about it this way. We have an algorithm that works in \(O(n + m)\) and a strictly worse one, that works in \(O(max(n, m) + max(n, m)\)). Let's assume \(n \ge m\). Since we only care about the order, this simplifies to \(O(max(n, m) + max(n, m)) = O(2n) = O(n)\) and we would call the worse algorithm linear still. If we do the same for an algorithm that works in \(O(nm)\) we get an algorithm that works in \(O(n^2)\), that's quadratic. That's why we care that our algorithm is \(O(n+m)\) and not \(O(nm)\).
+  </p>
+  <p>
+    Back to the task at hand, if our loop completes and doesn't end the computation, we have a couple of observations. First of all, all the subchains of length \(m\) in the longer chain have the same parity. Second, the longer chain is periodic. It goes
+    $$[\color{red}{a_0}, a_1, ..., a_{m-1}, \color{red}{a_0}, a_1, ... a_{m-1}, \color{red}{a_0}, a_1 ... ]$$
+    We can once again <i>reduce</i> our problem. Even if \(n\) is huge compared to \(m\) we no longer need to care. The relevant slice of the longer chain is of length \(2m-1\), because all the subsequent subchains are just repeats.
+  </p>
+  <pre><code class="language-python">
+  def calculate_longest_subchain_length(n, m, a, b):
+
+      ...
+
+      n, a = min(n, 2 * m - 1), a[:2 * m - 1]
+
+      ...
+  </code></pre>
+  <p>
+    There is only one thing to check before we can be sure that \(m\) is not the answer. We need the parities of the whole short chain and any section of length \(m\) from the long chain. We can use our old function for that purpose. Computing the parity using the function <i>sum</i> is, as we have discussed, linear. So this whole section that checks whether \(m\) is the correct answer is \(O(n+m)\). We do need to check at least \(n+m\) elements to compute the parities one way or another, so that's the theoretical lower bound.
+  </p>
+  <p>
+    You might be wondering, if we can check if \(m\) is the answer this way, can't we do the same for \(m-1\)? And that's exactly the second version of a full solution. I did some refactoring now that we know why checking if a chain is periodic is usefull, you can check my version (file <i>par2.py</i>):
+  <pre><code class="language-python">
+  def is_periodic(chain, period_length):
+      for index in range(len(chain) - period_length):
+          if chain[index] != chain[index + period_length]:
+              return False
+
+      return True
+
+  def calculate_chain_parity(chain):
+      return sum(chain) % 2
+
+  def calculate_longest_subchain_length(n, m, a, b):
+      for length in reversed(range(m + 1)):
+          if not is_periodic(a, length) or not is_periodic(b, length):
+              return length
+
+          if calculate_chain_parity(a[:length]) == calculate_chain_parity(b[:length]):
+              return length
+
+          n, a = min(n, 2 * length - 1), a[:2 * length - 1]
+          # the following line never actually does anything, see if you can figure
+          # out why
+          m, b = min(m, 2 * length - 1), b[:2 * length - 1]
+
+  q = int(input())
+  for i in range(q):
+      n, m = [int(x) for x in input().split()]
+      a = [int(x) for x in input().split()]
+      b = [int(x) for x in input().split()]
+
+      # reduce the problem space to chains with gems of value 0 or 1
+      a = [x % 2 for x in a]
+      b = [x % 2 for x in b]
+
+      # reduce the problem space to cases where first chain if not shorter one
+      if m > n:
+          a, b, n, m = b, a, m, n
+
+      print(calculate_longest_subchain_length(n, m, a, b))
+  </code></pre>
+  </p>
+  <p>
+    This version at least completes <i>in/par02.in</i> in reasonable time. What is the complexity of <i>par2.py</i>? Let's make it simple this time. We've discussed that the inside of the loop is \(O(n+m)\), since we are doing it \(m+1\) times so let's say it's \(O(nm+m^2)\) or quadratic and call it a day. It's still two orders better then our first version and we are definitely getting some points.
+  </p>
+  <h2>Is it linear?</h2>
+  <p>
+    This should be the first question on your mind when you see a problem like this. Everything about it screams "linear" to me, I would require long convincing that it cannot be done in \(O(n+m)\) after the first glance. Not that I have not been wrong before, but at least that's my starting position.
+  </p>
+  <p>
+    So what are we missing? Actually nothing, we just need to look at what our algorithm does on further iterations of the loop. Let's look at the short chain this time. Let's assume nothing again and just say that the gem values are as follows:
+    $$[b_0, b_1, ..., b_{m-1}]$$
+    While checking for periods of length \(m\) our function simply exits calling it periodic. My math teacher might have some issues with this description but it's enough for me that it's not not periodic.
+  </p>
+  <p>
+    On the second iteration one comparison will be made:
+    $$b_0 = b_{m-1}?$$
+
+    If \(b_0 \neq b_{m-1}\) then our program would be finished. Let's follow it if it keeps going, and let's keep our knowledge of the chain up to date. Because after the second iteration completes and the answer has not been found, the last element must be the same as the first.
+
+    $$[\color{red}{b_0}, b_1, ..., b_{m-2}, \color{red}{b_0}]$$
+    $$b_0 = b_{m-1}$$
+
+    On the third iteration the following comparisons will be made:
+    $$b_0 = b_{m-2}?$$
+    $$b_1 = b_{m-1}?$$
+
+    But we already know that \(b_0 = b_{m-1}\), so the comparisons can be rewritten as
+    $$b_0 = b_{m-2}?$$
+    $$b_0 = b_1?$$
+
+    Suppose the algorithm keeps going, meaning those comparisons were true. We have
+
+    $$[\color{red}{b_0}, \color{red}{b_0}, b_2, b_3, ..., b_{m-3}, \color{red}{b_0}, \color{red}{b_0}]$$
+    $$b_0 = b_1 = b_{m-2} = b_{m-1}$$
+
+    I hope you see what's happening. Each iteration checks the next gem from the left and from the right. If at any point a gem of value different from \(b_0\) is found, the algorithm stops. That's actually all that it's doing, just looking for the first different element. By "first" I mean the first it encounters, counting from the left or from the right.
+  </p>
+  <p>
+    Suppose we have a chain that starts \([0, 0, 1, ...]\). That's first difference at index \(index=2\). We can be sure that the answer to our problem is \(m-index-1\) or better. Why better? Suppose the whole chain is just \([0, 0, 1]\), now our "first" difference at \(index=2\) is found in the very first check, because it's the first element from the right side.
+  </p>
+  <p>
+    You can see every element as having two indices, one is the natural \(index\), counting from the left. The other one is \(m-1-index\) counting from the right. We can use the expression \(min(index, m-1-index)\) to find which one is "first".
+  </p>
+  <p>
+    Now we just need to be careful of one of the only two truly hard things in computer science. These are:</p>
+  <ol>
+    <li>Cache invalidation</li>
+    <li>Naming things</li>
+    <li>Off-by-one errors</li>
+  </ol>
+  <p>
+    Two of the expressions used above look similar but I swapped the arguments on purpose. Let's do the implementation in two steps to avoid confusion. First, we will find the index of the first element that's different:
+  </p>
+  <pre><code class="language-python">
+  def first_different_element_index(chain):
+      first_different = len(chain)
+
+      for index, element in enumerate(chain):
+          if element != chain[0]:
+              first_different = min(first_different, index, len(chain) - 1 - index)
+
+      return first_different
+  </code></pre>
+  <p>
+    In a list of length \(m\) the indices are \(0, 1, ..., m-1\). The first index from the left is 0, so we want the very last element, or the first one from the right, to also be numbered 0. This is where the expression \(m-1-index\) comes from.
+  </p>
+  <p>
+    One thing to note about this function is that it returns a "magic" value of <i>len(chain)</i>, which is an index outside of the chain, when the chain has length 0 or all elements are the same. Special values like this are not exactly best practice and we will have to be careful how we handle this one.
+  </p>
+  <p>
+    Now that we know what index that is, we need to compute the answer from it. Let's look at the chain from the example, \([1, 1, 1, 0]\). Length of this chain is 4. The only index where the comparison fails is \(index=3\).
+    After the loop completes the value of <i>first_different</i> is \(min(4, 3, 4 - 1 - 3)=0\). We have found the first difference at index 0, so far so good.
+  </p>
+  <p>
+    But remember that the first answer we can compute this way comes after we have already checked that \(m=4\) is NOT the answer. The best answer we can get, when the difference is at \(index=0\) is \(m-1=3\).
+  </p>
+  <p>
+    This is where the second subtraction of 1 kicks in. Difference at index 0 means the answer is \(m - 0 - 1\). Difference at index <i>index</i> means the answer is \(m - index - 1\).
+  </p>
+  <pre><code class="language-python">
+  def index_to_answer(index, chain_length):
+      return chain_length - index - 1
+  </code></pre>
+  <p>
+    Remember our special value? If a different element was not found, we pass \(index=m\) and this function evaluates to -1, another special value meaning "no answer".
+  </p>
+  <p>
+    I'm going to use a wrapper function to handle the passing of arguments for me
+  </p>
+  <pre><code class="language-python">
+    def best_answer_from_single_chain(chain):
+        return index_to_answer(first_different_element_index(chain), len(chain))
+  </code></pre>
+  <p>
+    This reasoning works for the longer chain as well, we just need to limit the output value so it doesn't exceed \(m-1\). So the final computation will look like this:
+  </p>
+  <pre><code class="language-python">
+  def calculate_longest_subchain_length(n, m, a, b):
+
+      ...
+
+      return max(min(best_answer_from_single_chain(a), m - 1),
+                 best_answer_from_single_chain(b))
+  </code></pre>
+  <p>
+    With this function we can perform the same task that out periodicity check did, but this time in \(O(m + n)\). The last thing left to explain is what are we going to do with the parity check? If you remember, in <i>par2.py</i> we had to compare the parities at each step of the loop. Turns out, we can handle them all with just one simple check.
+  </p>
+  <p>
+    After we have confirmed that \(m\) is not the answer but before we proceed with <i>best_answer_from_single_chain</i>, we do this little check:
+  </p>
+  <pre><code class="language-python">
+  def calculate_longest_subchain_length(n, m, a, b):
+
+      ...
+
+      if a[0] != b[0]:
+          return m - 1
+
+      ...
+
+  </code></pre>
+  <p>
+    We have just checked the parities of length \(m\) chunks and confirmed that they are different. Let's say
+    $$[a_0, a_1, ..., a_{m-1}] \text{ is Even}$$
+    $$[b_0, b_1, ..., b_{m-1}] \text{ is Odd}$$
+
+    What about these \(m-1\) length chains, where we take out \(a_0\) and \(b_0\)?
+    $$[a_1, a_2, ..., a_{m-1}]$$
+    $$[b_1, b_2, ..., b_{m-1}]$$
+
+    One of them is missing an Even number, so it's parity is the same as the \(m\) length chunk. But the other one is missing an Odd number, so it's parity changed. Only one chain changed parity after losing it's first element, so they are both Even, or they are both Odd. Which means those chains satisfy the requirements and we can produce the answer.
+  </p>
+  <p>
+    I hope that's clear. But why can we skip checking the parities of shorter subchains? Recall that at each step of the loop we were confirming that more and more elements from both ends are the same as the first element. We now know that this value is the same in both chains. This means that every subchain shorter by one gem is missing exactly \(a_0=b_0\) from either end. If \(a_0=b_0=0\) the shorter chain's parity stays the same. If the length \(m\) chains started with different parities, they will stay different until we find a gem different from \(a_0=b_0\). If \(a_0=b_0=1\) the parity flips like clockwork with every shorter chain, but it flips for both chains at the same time. So like clockwork when one of them is Odd the other is Even, when we look at chains one gem shorter the first one flips to Even but the other one flips to Odd. Again, they never match up until we find an element other than \(a_0=b_0\).
+  </p>
+  <p>
+    That's it, the full listing of my program (file <i>par.py</i>).
+  </p>
+  <pre><code class="language-python">
+  def is_periodic(chain, period_length):
+      for index in range(len(chain) - period_length):
+          if chain[index] != chain[index + period_length]:
+              return False
+
+      return True
+
+  def calculate_chain_parity(chain):
+      return sum(chain) % 2
+
+  def best_answer_from_single_chain(chain):
+      return index_to_answer(first_different_element_index(chain), len(chain))
+
+  def first_different_element_index(chain):
+      first_different = len(chain)
+
+      for index, element in enumerate(chain):
+          if element != chain[0]:
+              first_different = min(first_different, index, len(chain) - 1 - index)
+
+      return first_different
+
+  def index_to_answer(index, chain_length):
+      return chain_length - index - 1
+
+  def calculate_longest_subchain_length(n, m, a, b):
+      if not is_periodic(a, m):
+          return m
+
+      if calculate_chain_parity(a[:m]) == calculate_chain_parity(b):
+          return m
+
+      if a[0] != b[0]:
+          return m - 1
+
+      # reduce problem space to chains where n < 2m
+      n, a = min(n, 2 * m - 1), a[:2 * m - 1]
+
+      return max(min(best_answer_from_single_chain(a), m - 1),
+                best_answer_from_single_chain(b))
+
+
+  q = int(input())
+  for i in range(q):
+      n, m = [int(x) for x in input().split()]
+      a = [int(x) for x in input().split()]
+      b = [int(x) for x in input().split()]
+
+      # reduce the problem space to chains with gems of value 0 or 1
+      a = [x % 2 for x in a]
+      b = [x % 2 for x in b]
+
+      # reduce the problem space to cases where first chain if not shorter one
+      if m > n:
+          a, b, n, m = b, a, m, n
+
+      print(calculate_longest_subchain_length(n, m, a, b))
+
+  </code></pre>
+  <p>
+    The algorithm is \(O(n+m)\) and I'd be happy to send this version to the competition.
+  </p>
+  <h2>Further work</h2>
+  <p>
+    Now that we have a proper algorithm you can begin to optimize smaller chunks of the program. For example we are reading in the data and then basically copying it over, creating another list without much reason other than clarity. The way we are calculating parities for the longest chunks could be done faster with the XOR operator instead of summing them up then performing <i>modulo</i> 2, at least I'm guessing it would be faster.
+  </p>
+  <p>
+    If speed is your way of life the program could use a rewrite into C for immediate gains. Once you are in the machine world it would not feel so strange to read in the input one character at a time and process then discard it as soon as you can, reducing the memory complexity from \(O(m+n)\) to \(O(1)\), although I don't know if that's possible.
+  </p>
+  <p>
+    That's all for now, I'll try to create similar writeups about the other problems from this competition but it might take some serious time.
+  </p>
+  <p>
+    Happy coding everybody!
+  </p>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.15.0/prism.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.15.0/components/prism-python.min.js"></script>
+</body>
+</html>
